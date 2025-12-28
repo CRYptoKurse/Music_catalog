@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход в Музыкальный Каталог</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .auth-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .auth-tab {
+            flex: 1;
+            padding: 0.5rem;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .auth-tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+        
+        .auth-form {
+            display: none;
+        }
+        
+        .auth-form.active {
+            display: block;
+        }
+        
+        .auth-form input {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        
+        .auth-error {
+            color: #e74c3c;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            background: #f8d7da;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .user-info {
+            text-align: center;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background: #667eea;
+            color: white;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+        }
+        
+        .badge.admin {
+            background: #f39c12;
+        }
+        
+        .badge.user {
+            background: #27ae60;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <h2 style="text-align: center; margin-bottom: 2rem; color: #667eea;">🎵 Музыкальный Каталог</h2>
+        
+        <div id="auth-section" style="display: none;">
+            <div class="auth-tabs">
+                <div class="auth-tab active" onclick="showAuthTab('login')">Вход</div>
+                <div class="auth-tab" onclick="showAuthTab('register')">Регистрация</div>
+            </div>
+            
+            <div id="login-form" class="auth-form active">
+                <div id="login-error" class="auth-error"></div>
+                <input type="text" id="login-username" placeholder="Имя пользователя">
+                <input type="password" id="login-password" placeholder="Пароль">
+                <button class="btn btn-primary" style="width: 100%; padding: 0.75rem;" onclick="performLogin()">Войти</button>
+                <p style="text-align: center; margin-top: 1rem; color: #666; font-size: 0.9rem;">
+                    Тестовые пользователи:<br>
+                    <strong>admin</strong> / <strong>password123</strong> (администратор)<br>
+                    <strong>demo_user</strong> / <strong>password123</strong> (обычный пользователь)
+                </p>
+            </div>
+            
+            <div id="register-form" class="auth-form">
+                <div id="register-error" class="auth-error"></div>
+                <input type="text" id="register-username" placeholder="Имя пользователя">
+                <input type="email" id="register-email" placeholder="Email">
+                <input type="password" id="register-password" placeholder="Пароль">
+                <input type="password" id="register-confirm" placeholder="Подтвердите пароль">
+                <button class="btn btn-primary" style="width: 100%; padding: 0.75rem;" onclick="performRegister()">Зарегистрироваться</button>
+            </div>
+        </div>
+        
+        <div id="user-section" style="display: none;">
+            <div class="user-info">
+                <p>Добро пожаловать, <strong id="username-display"></strong>!</p>
+                <p>Роль: <span id="user-role" class="badge"></span></p>
+            </div>
+            <button class="btn btn-primary" style="width: 100%; padding: 0.75rem;" onclick="enterApp()">Войти в приложение</button>
+            <button class="btn btn-danger" style="width: 100%; padding: 0.75rem; margin-top: 0.5rem;" onclick="logout()">Выйти</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let currentUser = null;
+        let currentToken = null;
+
+        // Проверка авторизации при загрузке
+        function checkAuth() {
+            const token = localStorage.getItem('music_token');
+            const user = localStorage.getItem('music_user');
+            
+            if (token && user) {
+                currentToken = token;
+                currentUser = JSON.parse(user);
+                
+                // Проверяем валидность токена
+                fetch(`${API_BASE}/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        showUserSection();
+                    } else {
+                        logout();
+                    }
+                })
+                .catch(() => logout());
+            } else {
+                document.getElementById('auth-section').style.display = 'block';
+            }
+        }
+
+        // Функции для работы с аутентификацией
+        async function login(username, password) {
+            try {
+                const response = await fetch(`${API_BASE}/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Ошибка входа');
+                }
+                
+                const data = await response.json();
+                currentToken = data.access_token;
+                currentUser = data.user;
+                
+                // Сохраняем в localStorage
+                localStorage.setItem('music_token', currentToken);
+                localStorage.setItem('music_user', JSON.stringify(currentUser));
+                
+                return data;
+            } catch (error) {
+                console.error('Login error:', error);
+                throw error;
+            }
+        }
+
+        async function register(username, email, password) {
+            try {
+                const response = await fetch(`${API_BASE}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, email, password })
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Ошибка регистрации');
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('Registration error:', error);
+                throw error;
+            }
+        }
+
+        function logout() {
+            // Вызываем логаут на сервере
+            if (currentToken) {
+                fetch(`${API_BASE}/logout`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                }).catch(console.error);
+            }
+            
+            // Очищаем локальные данные
+            currentToken = null;
+            currentUser = null;
+            localStorage.removeItem('music_token');
+            localStorage.removeItem('music_user');
+            
+            // Показываем форму входа
+            document.getElementById('auth-section').style.display = 'block';
+            document.getElementById('user-section').style.display = 'none';
+            showAuthTab('login');
+        }
+
+        function showAuthTab(tabName) {
+            // Переключение табов
+            document.querySelectorAll('.auth-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.auth-form').forEach(form => {
+                form.classList.remove('active');
+            });
+            
+            document.querySelector(`.auth-tab[onclick*="${tabName}"]`).classList.add('active');
+            document.getElementById(`${tabName}-form`).classList.add('active');
+            
+            // Очищаем ошибки
+            document.querySelectorAll('.auth-error').forEach(error => {
+                error.style.display = 'none';
+                error.textContent = '';
+            });
+        }
+
+        async function performLogin() {
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            
+            if (!username || !password) {
+                showError('login', 'Заполните все поля');
+                return;
+            }
+            
+            try {
+                await login(username, password);
+                showUserSection();
+            } catch (error) {
+                showError('login', error.message);
+            }
+        }
+
+        async function performRegister() {
+            const username = document.getElementById('register-username').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const confirm = document.getElementById('register-confirm').value;
+            
+            if (!username || !email || !password) {
+                showError('register', 'Заполните все поля');
+                return;
+            }
+            
+            if (password !== confirm) {
+                showError('register', 'Пароли не совпадают');
+                return;
+            }
+            
+            try {
+                await register(username, email, password);
+                // После регистрации автоматически входим
+                await login(username, password);
+                showUserSection();
+            } catch (error) {
+                showError('register', error.message);
+            }
+        }
+
+        function showError(form, message) {
+            const errorDiv = document.getElementById(`${form}-error`);
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        function showUserSection() {
+            document.getElementById('auth-section').style.display = 'none';
+            document.getElementById('user-section').style.display = 'block';
+            
+            document.getElementById('username-display').textContent = currentUser.username;
+            const roleBadge = document.getElementById('user-role');
+            roleBadge.textContent = currentUser.role === 'admin' ? 'Администратор' : 'Пользователь';
+            roleBadge.className = currentUser.role === 'admin' ? 'badge admin' : 'badge user';
+            
+            // Очищаем поля форм
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+            document.getElementById('register-username').value = '';
+            document.getElementById('register-email').value = '';
+            document.getElementById('register-password').value = '';
+            document.getElementById('register-confirm').value = '';
+        }
+
+        function enterApp() {
+            // Перенаправляем на главную страницу
+            window.location.href = 'index.html';
+        }
+
+        // Проверяем авторизацию при загрузке
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+        });
+    </script>
+</body>
+</html>

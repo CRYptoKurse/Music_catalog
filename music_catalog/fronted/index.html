@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Музыкальный Каталог</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="nav-brand">
+                <h1>🎵 Музыкальный Каталог</h1>
+            </div>
+            <div class="nav-links">
+                <span style="color: white; margin-right: 1rem; display: flex; align-items: center;">
+                    Привет, <strong id="current-username" style="margin: 0 5px;"></strong>
+                    <span id="user-role-badge" style="background: rgba(255,255,255,0.3); padding: 2px 8px; border-radius: 10px; font-size: 0.8rem; margin-left: 5px;"></span>
+                </span>
+                <button onclick="showSection('catalog')">Каталог</button>
+                <button onclick="showSection('playlists')">Мои плейлисты</button>
+                <button onclick="showSection('recommendations')">Рекомендации</button>
+                <button onclick="showSection('search')">Поиск</button>
+                <button id="admin-btn" onclick="showSection('admin')" style="background: #f39c12; display: none;">Админ</button>
+                <button onclick="logout()" style="background: #e74c3c;">Выйти</button>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        <!-- Секция каталога -->
+        <section id="catalog-section" class="section active">
+            <h2>Музыкальный Каталог</h2>
+            <div class="filters">
+                <select id="genre-filter" onchange="filterByGenre()">
+                    <option value="">Все жанры</option>
+                </select>
+                <input type="text" id="search-catalog" placeholder="Поиск в каталоге..." onkeyup="searchCatalog()">
+            </div>
+            <div class="catalog-grid" id="catalog-grid">
+                <!-- Треки будут загружены здесь -->
+            </div>
+        </section>
+
+        <!-- Секция плейлистов -->
+        <section id="playlists-section" class="section">
+            <h2>Мои плейлисты</h2>
+            <div class="playlist-actions">
+                <input type="text" id="new-playlist-name" placeholder="Название плейлиста">
+                <button onclick="createPlaylist()">Создать плейлист</button>
+            </div>
+            <div class="playlists-grid" id="playlists-grid">
+                <!-- Плейлисты будут загружены здесь -->
+            </div>
+        </section>
+
+        <!-- Секция рекомендаций -->
+        <section id="recommendations-section" class="section">
+            <h2>Рекомендации для вас</h2>
+            <div id="recommendation-reason" class="reason"></div>
+            <div class="recommendations-grid" id="recommendations-grid">
+                <!-- Рекомендации будут загружены здесь -->
+            </div>
+        </section>
+
+        <!-- Секция поиска -->
+        <section id="search-section" class="section">
+            <h2>Поиск музыки</h2>
+            <div class="search-tabs">
+                <button class="tab-button active" onclick="openSearchTab('tracks')">Треки</button>
+                <button class="tab-button" onclick="openSearchTab('albums')">Альбомы</button>
+                <button class="tab-button" onclick="openSearchTab('artists')">Исполнители</button>
+            </div>
+            
+            <div class="search-container">
+                <input type="text" id="global-search" placeholder="Введите запрос..." onkeyup="performGlobalSearch()">
+            </div>
+            
+            <div id="search-tracks" class="search-tab-content active">
+                <div class="search-results" id="search-tracks-results"></div>
+            </div>
+            <div id="search-albums" class="search-tab-content">
+                <div class="search-results" id="search-albums-results"></div>
+            </div>
+            <div id="search-artists" class="search-tab-content">
+                <div class="search-results" id="search-artists-results"></div>
+            </div>
+        </section>
+
+        <!-- Секция администратора -->
+        <section id="admin-section" class="section">
+            <h2>Панель администратора</h2>
+            
+            <div class="admin-stats">
+                <h3>Статистика</h3>
+                <div id="admin-stats-content">
+                    <!-- Статистика будет загружена здесь -->
+                </div>
+            </div>
+            
+            <div class="admin-users">
+                <h3>Управление пользователями</h3>
+                <input type="text" id="search-users" placeholder="Поиск пользователей..." onkeyup="searchUsers()">
+                <div id="users-list">
+                    <!-- Список пользователей будет здесь -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Модальное окно для управления плейлистом -->
+    <div id="playlist-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closePlaylistModal()">&times;</span>
+            <h3 id="modal-playlist-name"></h3>
+            <div class="modal-actions">
+                <input type="text" id="search-track-to-add" placeholder="Поиск трека для добавления...">
+                <button onclick="searchTracksForPlaylist()">Найти</button>
+            </div>
+            <div id="search-tracks-results-modal" class="search-results-modal"></div>
+            <div class="playlist-tracks" id="playlist-tracks-list">
+                <!-- Треки плейлиста будут здесь -->
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
